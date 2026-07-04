@@ -10,16 +10,16 @@ This section lists every feature planned for v1, split into the **Farmer Mobile 
 
 ---
 
-## A. Farmer Mobile App (React Native + Expo, Android + iOS)
+## A. Farmer Mobile App (React Native — bare CLI, Android + iOS, no Expo)
 
 ### A1. Auth & Onboarding — *Must*
-Farmer registers and logs in with phone number + password; a free trial starts instantly.
+Farmer registers with phone number + password; an admin approves the account, which starts the free trial and enables login.
 - Registration captures name, phone (unique), village, state, district; consent checkbox shown at signup (DPDP Act 2023).
-- On successful registration, a `subscriptions` record is created with status `trial`, `trialEndsAt` = now + `appConfig.trialDays` (14), and login is enabled immediately.
-- Login returns a JWT (with expiry + refresh); wrong password is rejected with a clear message.
+- On registration, a `subscriptions` record is created with status `pending_approval` and login is **blocked**. When an admin approves, status becomes `trial`, `trialStartedAt` = approval time, `trialEndsAt` = approval time + `appConfig.trialDays` (14), and login is enabled.
+- Login returns a JWT (with expiry + refresh); wrong password is rejected with a clear message; a `pending_approval` account is rejected with a "waiting for approval" message.
 - A farmer can only see their own data; another farmer's ID in an API call returns 403.
 
-> **Open question:** the spine flags an unresolved product choice — *require admin approval BEFORE first login* (original idea) vs *instant trial on registration* (recommended). This section documents the instant-trial flow; the final call sits with the product owner.
+> **Decided:** admin approval is **required before first login**. Registration creates a `pending_approval` account; an admin approves it from the web to start the trial and enable login.
 
 ### A2. Farm & Crop Setup (Plots + Crop Cycles) — *Must*
 Farmer defines plots with area, then creates crop cycles (the primary unit of profit analysis).
@@ -85,9 +85,9 @@ Product owner logs in with email + password; access is role-based.
 ### B2. Farmer Management — *Must*
 View, search and manage all farmers and their status.
 - Admin can list and search farmers by name, phone, village, state.
-- Admin can set a farmer's status to `active` / `suspended`.
+- Admin can **approve** a `pending_approval` farmer (this starts the trial and enables login), and set a farmer's status to `active` / `suspended` / `deactivated`.
 - Opening a farmer shows their profile and subscription state.
-- A farmer's data deletion request can be actioned (DPDP compliance).
+- A farmer's account can be **deactivated** (data retained, never hard-deleted); a formal DPDP legal-erasure demand is handled as a manual admin exception (see doc 07).
 
 ### B3. Subscription & Payment Activation — *Must*
 Record an offline (cash/UPI) payment and activate the paid month. No payment gateway in v1.
@@ -134,6 +134,6 @@ These are intentionally excluded from v1. The architecture leaves a clean seam f
 | **Weather + mandi (market) prices** | Needs external data feeds; not core to profit tracking. | **v3** |
 | **Crop advisory / recommendations** | Advisory content and agronomy are a separate product effort. | **v3** |
 | **Multi-user farms (multiple logins per farm)** | v1 assumes one farmer = one account. | **v3** |
-| **OTP login** | v1 uses phone + password; OTP is noted as a later auth option. | **v2** |
+| **OTP / SMS login** | Excluded by owner decision — login is phone + password only, with admin-assisted reset. | **Not planned** |
 
 **Guiding rule for v1:** ship the smallest complete loop — a farmer can log expenses and income against a crop cycle, see cash and true profit per acre, and share it; the owner can activate subscriptions and see revenue. Everything above that loop is a *Should* or a *Could*, and everything in the table is out of scope.

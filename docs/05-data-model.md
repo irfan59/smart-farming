@@ -14,14 +14,17 @@ Two rules apply to every collection:
 
 | Enum | Allowed values |
 |---|---|
-| `subscriptions.status` | `trial`, `active`, `grace`, `expired`, `suspended` |
-| `farmers.status` | `active`, `suspended` |
+| `subscriptions.status` | `pending_approval`, `trial`, `active`, `grace`, `expired`, `suspended` |
+| `farmers.status` | `active`, `suspended`, `deactivated` |
 | `transactions.type` | `expense`, `income` |
 | `cropCycles.season` | `kharif`, `rabi`, `zaid`, `perennial` |
-| `cropCycles.status` | `active`, `closed` |
+| `cropCycles.status` | `active`, `closed`, `deactivated` |
+| `transactions.isVoid` | `true`, `false` (soft-delete flag) |
 | `payments.method` | `cash`, `upi`, `other` |
 | `admins.role` | `admin`, `superadmin` |
 | `expenseCategories.cacpTag` | `A1`, `A2`, `FL`, `C2` |
+
+**Deactivate-only (no hard deletes).** No document is ever physically removed. "Deleting" is a soft operation: `transactions` set `isVoid = true`; `plots` set `isActive = false`; `cropCycles` and `farmers` move to a `deactivated` status. All list and report queries exclude void/inactive/deactivated records. Data is retained for the owner's history and audit; a formal legal erasure (DPDP) is a separate manual admin exception (see doc 07).
 
 ---
 
@@ -69,11 +72,13 @@ Two rules apply to every collection:
 | `farmerId` | ObjectId | yes | Ref → farmers, **one per farmer** |
 | `status` | String | yes | See enum |
 | `plan` | String | yes | `monthly` in v1 |
-| `trialStartedAt` | Date | yes | Set at signup (instant trial) |
-| `trialEndsAt` | Date | yes | `trialStartedAt + trialDays` |
+| `trialStartedAt` | Date | no | Set when an admin approves the account (trial start); null while `pending_approval` |
+| `trialEndsAt` | Date | no | `trialStartedAt + trialDays`; set at approval, null while `pending_approval` |
 | `currentPeriodStart` | Date | no | Start of paid month |
 | `currentPeriodEnd` | Date | no | End of paid month |
-| `activatedByAdminId` | ObjectId | no | Ref → admins (who activated) |
+| `activatedByAdminId` | ObjectId | no | Ref → admins (who activated a paid month) |
+| `approvedByAdminId` | ObjectId | no | Ref → admins (who approved the account out of `pending_approval`) |
+| `approvedAt` | Date | no | When the account was approved (trial start) |
 | `notes` | String | no | Free text |
 
 **Indexes:** `{ farmerId: 1 }` **unique**; `{ status: 1, trialEndsAt: 1 }` and `{ status: 1, currentPeriodEnd: 1 }` (these support the on-request, time-based status checks described in doc 03 that move trials/paid months into `grace`/`expired`; if a periodic sweep is ever added later it can reuse them).
@@ -182,15 +187,17 @@ The crop cycle is **the primary unit of profit analysis**.
 | `note` | String | no | Free text |
 | `photoPublicId` | String | no | Cloudinary `public_id` of the receipt image (unguessable). The API stores this, **not** a public URL. |
 | `isImputed` | Boolean | yes | `true` for true-cost items |
+| `isVoid` | Boolean | yes | Soft-delete flag; a "deleted" entry is set `true` and **excluded from all reports** but never physically removed (deactivate-only policy). Default `false` |
+| `voidedAt` | Date | no | When the entry was voided |
 | `createdAt` | Date | yes | Entry time |
 
-**Indexes:** `{ farmerId: 1, date: -1 }` (monthly/yearly reports); `{ cropCycleId: 1 }` (per-crop profit); `{ farmerId: 1, type: 1, categoryId: 1 }` (category breakdown).
+**Indexes:** `{ farmerId: 1, date: -1 }` (monthly/yearly reports); `{ cropCycleId: 1 }` (per-crop profit); `{ farmerId: 1, type: 1, categoryId: 1 }` (category breakdown). All report queries filter `isVoid: false`.
 
 **Receipt photos are private (DPDP-relevant PII).** A receipt can show the farmer's name, amounts, phone numbers, and UPI/bank references, so it must not be world-readable. Default Cloudinary delivery URLs are **public** — anyone with the link (and often anyone who guesses a `public_id`) can view the image, which would sit *outside* the API's per-farmer scoping. So:
 - Store only the **`photoPublicId`** in the DB, never a public delivery URL.
 - Upload receipts as **authenticated/private** assets (Cloudinary `type=authenticate` / `private`) using **unguessable** `public_id`s.
 - The API mints a **short-lived signed view URL** per request, *after* it has checked that the requesting farmer owns the transaction. The signed URL expires quickly, so a leaked link cannot be reused.
-- On **transaction delete** and on **account deletion (`DELETE /me`)**, the API must also delete the underlying image from Cloudinary (by `public_id`) — not just remove the DB row.
+- **Deactivate-only:** voiding a transaction or deactivating an account does **not** delete the receipt image — records and their images are retained. Cloudinary images are removed **only** during a manual DPDP legal-erasure exception (see doc 07), by `public_id`.
 
 ### announcements
 
@@ -211,6 +218,7 @@ The crop cycle is **the primary unit of profit analysis**.
 | `_id` | ObjectId | yes | Primary key |
 | `trialDays` | Number | yes | e.g. `14` |
 | `monthlyPriceINR` | Number | yes | e.g. `99` |
+| `yearlyPriceINR` | Number | yes | e.g. `799` |
 | `landUnitConversions` | Object | yes | Table keyed by `(unit, state)` → sq ft / acres |
 | `defaultCategories` | Object | no | Seed lists for new installs |
 

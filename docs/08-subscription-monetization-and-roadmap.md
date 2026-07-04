@@ -21,7 +21,7 @@ The `subscriptions` collection tracks each farmer's state:
 ### Recommended lifecycle (locked)
 
 ```
-Register -> INSTANT free trial (login enabled at once, ~14 days)
+Register -> pending approval -> admin approves -> 14-day free trial (login enabled)
    -> trial ends
    -> farmer pays offline (cash / UPI) to the owner
    -> ADMIN records payment + activates the paid month from web
@@ -34,7 +34,7 @@ Register -> INSTANT free trial (login enabled at once, ~14 days)
 
 ### Manual admin workflow
 
-1. Farmer registers in the app -> `subscriptions.status = trial`, `trialStartedAt` and `trialEndsAt` (= start + `appConfig.trialDays`) are set.
+1. Farmer registers -> `subscriptions.status = pending_approval` (login blocked). An admin approves from the web -> status becomes `trial`, `trialStartedAt`/`trialEndsAt` (= approval + `appConfig.trialDays`) are set and login is enabled.
 2. Near / after trial end, the farmer pays the owner offline.
 3. Admin opens the farmer in the web panel and clicks **Record Payment**: enters `amount`, `method` (cash / upi / other), and the covered period.
 4. This writes a `payments` row (`recordedByAdminId`, `periodStart`, `periodEnd`) **and** updates the `subscriptions` row: `status = active`, `currentPeriodStart/End` set, `activatedByAdminId` recorded.
@@ -46,11 +46,11 @@ The payment record and the subscription activation are the **audit trail** — e
 
 The suggested pricing is a **starting point for validation, not a final decision**:
 
-| Plan | Suggested price | Notes |
+| Plan | Launch price (DECIDED, admin-adjustable) | Notes |
 |------|-----------------|-------|
-| Free trial | ~14 days | Instant on registration; full features |
-| Monthly | **~Rs 99 / month** | Low enough to feel like "one small purchase" |
-| Yearly | **~Rs 799 / year** | ~Rs 67/month effective — rewards commitment, improves retention |
+| Free trial | 14 days | Starts when the admin approves the account; full features |
+| Monthly | **Rs 99 / month** | Low enough to feel like "one small purchase" |
+| Yearly | **Rs 799 / year** | ~Rs 67/month effective — rewards commitment, improves retention |
 
 **Rationale.** Rs 99/month sits near common Indian digital subscription anchors (recharge packs, OTT-lite plans) and keeps the mental cost low for a smallholder. The yearly plan at Rs 799 (about 8 months' price for 12 months) pulls forward cash and reduces monthly-renewal churn — which matters a lot when renewals are collected by hand. A 14-day trial is long enough to log a few real expenses and see a first report, but short enough to prompt a paying decision.
 
@@ -85,8 +85,8 @@ The v1 architecture deliberately leaves the **offline seam** open (a local write
 
 These are **deliberately unresolved** and should be settled with the owner (and ideally a farmer pilot) before or during build:
 
-1. **Instant-trial vs approve-first login.** Recommended: **instant free trial** on registration (login works immediately). Original idea: **admin approves before first login**. Instant-trial maximises adoption; approve-first gives the owner more control and screens out junk signups. *Decision needed.*
-2. **Final pricing.** Rs 99/month and Rs 799/year are **suggestions to validate**, not final. Confirm the numbers, trial length (14 days?), and the monthly-vs-yearly split after farmer interviews.
+1. **Onboarding (DECIDED).** Admin approves the account **before first login**; the 14-day trial starts on approval. The owner chose control over friction — so approvals should be handled promptly.
+2. **Pricing (DECIDED for launch).** Rs 99/month, Rs 799/year, 14-day trial — admin-adjustable in config. Still worth validating with farmers, but this is the launch price.
 3. **Offline timing.** v1 is online-first; offline sync is planned for v2. Confirm whether early pilot regions have connectivity good enough to defer offline, or whether it must be pulled earlier.
 4. **Land-unit override UX.** Bigha varies by state, so area is stored as `{value, unit, normalizedAcres}` with a state-keyed conversion table. Open: how much should the farmer **see and confirm/override** the computed `normalizedAcres` — silent conversion, a confirmation step, or a full manual editor? This affects per-acre report accuracy.
-5. **OTP vs password login.** v1 uses **phone + password**. Open: whether to move to (or add) **phone + OTP** login, which is more familiar to Indian users but adds SMS cost and an SMS-provider dependency. Could ship as a later auth option.
+5. **Login method (DECIDED).** v1 uses **phone + password**, no OTP/SMS — owner decision (avoids SMS cost and provider dependency). Password recovery is admin-assisted. This item is settled, not open.

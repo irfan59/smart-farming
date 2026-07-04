@@ -114,5 +114,5 @@ The farm-management software market is crowded at the top but thin at the bottom
 
 ### Open questions
 
-- **First-login model:** require **admin approval before first login** (original idea, more control) vs **instant free trial** (recommended, lower friction). This affects onboarding flow and early activation — to be decided before build.
-- **Price point:** ~Rs 99/month vs ~Rs 799/year is a *starting hypothesis* to validate with the first cohort, not a locked price.
+- **First-login model (DECIDED):** admin approval is **required before first login**; the trial starts when the admin approves.
+- **Price point (DECIDED for launch):** Rs 99/month or Rs 799/year (admin-adjustable); still worth validating with the first cohort.

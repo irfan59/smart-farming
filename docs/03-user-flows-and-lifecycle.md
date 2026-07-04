@@ -6,28 +6,28 @@
 
 This section describes every important flow in the Smart Farming product, step by step. It covers what the farmer does in the mobile app, what the product owner does in the web admin panel, and how an account moves between states over its life. Use these flows as the reference when building screens and API endpoints. All flows assume online-first behaviour (a live connection to the backend).
 
-## Open decision: instant trial vs approve-before-login
+## Account onboarding model (DECIDED): admin approves before login
 
-Before the flows, one decision must be made about how a new farmer gets in:
+The owner has decided how a new farmer gets in. Both options were weighed:
 
 | Option | How it works | Pros | Cons |
 | --- | --- | --- | --- |
-| A. Instant free trial (recommended) | Farmer registers and can log in immediately; a 14-day trial starts at once. | Zero friction; farmer sees value the same minute; higher activation. | A few fake/junk accounts may register before any human check. |
-| B. Approve-before-login (original idea) | Farmer registers but cannot log in until an admin approves the account. | Owner controls who gets in; less junk. | Farmer waits (maybe hours); many drop off before they ever try the app; admin becomes a bottleneck. |
+| A. Instant free trial (not chosen) | Farmer registers and can log in immediately; a 14-day trial starts at once. | Zero friction; farmer sees value the same minute; higher activation. | A few fake/junk accounts may register before any human check. |
+| B. Approve-before-login (**CHOSEN**) | Farmer registers but cannot log in until an admin approves the account. | Owner controls who gets in; less junk. | Farmer waits (maybe hours); many drop off before they ever try the app; admin becomes a bottleneck. |
 
-**Recommendation: Option A (instant trial).** For a smallholder farmer, the first minutes decide whether the app is trusted and used. Making them wait for manual approval kills adoption. Junk accounts are a small, manageable problem: the admin can suspend a bad account later, and no money is at risk during the trial. The flows below assume Option A.
+**Decision: Option B (admin approves before login).** The owner wants to gate every signup and keep out junk accounts. Registration creates the account in `pending_approval` with login blocked; an admin approves it from the web, which starts the 14-day trial and enables login. Trade-off accepted: the farmer must wait for approval, so **approvals should be handled promptly** (ideally same day) to limit drop-off. The flows below assume Option B.
 
-If the owner prefers Option B, the only change is an extra `pending_approval` state that comes before `trial`: registration creates the subscription in `pending_approval`, login is blocked, and an admin must approve the account before the trial starts. This value is already listed in the state-machine table below and in the `subscriptions.status` enum in the data model (file 05), so Option B is buildable without a schema change if the owner picks it.
+Mechanically: registration creates the subscription in `pending_approval` and login is blocked. When an admin approves (`POST /admin/farmers/:id/approve`), the status moves to `trial`, `trialStartedAt`/`trialEndsAt` are set, and login is enabled. The `pending_approval` value is listed in the state-machine table below and in the `subscriptions.status` enum in the data model (file 05).
 
 ## Farmer flows
 
-### Flow 1: Registration and instant free-trial onboarding
+### Flow 1: Registration and admin-approved onboarding
 
 1. Farmer opens the app and taps **Register**.
 2. Farmer enters name, phone number, password, and selects state, district, and village. A consent checkbox (DPDP Act 2023) is shown and must be ticked.
 3. App sends the details to the backend. Backend checks the phone is unique, hashes the password (bcrypt), and creates a `farmers` record with `status = active`.
-4. Backend creates a `subscriptions` record with `status = trial`, `trialStartedAt = now`, `trialEndsAt = now + trialDays` (from `appConfig`, default 14).
-5. Backend returns a JWT. The farmer is logged in immediately — no waiting for approval.
+4. Backend creates a `subscriptions` record with `status = pending_approval`. **Login is blocked** and no trial dates are set yet.
+5. The app shows a **"Waiting for approval"** screen. When an admin approves from the web (`POST /admin/farmers/:id/approve`), the subscription moves to `status = trial` with `trialStartedAt = now`, `trialEndsAt = now + trialDays` (from `appConfig`, default 14). The farmer can now log in and receives a JWT.
 6. A short first-run guide shows how to add a plot and log an entry. The farmer optionally adds a first plot (name, area value + unit + state; app computes `normalizedAcres`).
 7. A banner shows trial days left (e.g. "Trial: 13 days left").
 
@@ -56,7 +56,7 @@ This is the most-used screen and must be fast. Target: log one entry in 2-3 taps
 
 1. As the trial nears its end, the app shows a reminder (e.g. "Trial ends in 2 days"). An FCM push may also be sent.
 2. When `trialEndsAt` has passed and no payment exists, the subscription is treated as `grace` (read-only). This is not flipped by a background job: the backend evaluates the dates on the farmer's next authenticated request (and on any admin dashboard read) and, if `trialEndsAt < now`, updates the stored `status` to `grace` at that moment. The farmer can still view past data and reports.
-3. The farmer pays the owner **offline** — cash or UPI (there is no payment gateway in v1). Suggested price to validate: ~Rs 99/month or ~Rs 799/year.
+3. The farmer pays the owner **offline** — cash or UPI (there is no payment gateway in v1). Price: Rs 99/month or Rs 799/year (admin-adjustable in config).
 4. The owner opens the web admin, finds the farmer, and records the payment (see Flow 6): a `payments` record plus an updated `subscriptions` record.
 5. The subscription becomes `active` with `currentPeriodStart` and `currentPeriodEnd` set (e.g. one month ahead).
 6. On the farmer's next app use, full access is restored: adding entries works again. An FCM push can confirm "Your subscription is active until 04 Aug 2026".
@@ -99,9 +99,8 @@ The `subscriptions.status` field drives what a farmer can do. States and transit
 
 | From | To | Trigger | Who triggers | Farmer access after |
 | --- | --- | --- | --- | --- |
-| (none) | `trial` | Registration completed (Option A, recommended) | Farmer (self) | Full access |
-| (none) | `pending_approval` | Registration completed (Option B only) | Farmer (self) | Login blocked until approved |
-| `pending_approval` | `trial` | Admin approves the account (Option B only) | Admin | Full access |
+| (none) | `pending_approval` | Registration completed | Farmer (self) | Login blocked until approved |
+| `pending_approval` | `trial` | Admin approves the account (starts the 14-day trial) | Admin | Full access |
 | `trial` | `active` | Payment recorded during trial | Admin | Full access |
 | `trial` | `grace` | `trialEndsAt` has passed, no payment; detected on next request | System (on-request, time-based) | Read-only |
 | `active` | `active` | Renewal payment recorded | Admin | Full access (new period) |
@@ -115,12 +114,12 @@ The `subscriptions.status` field drives what a farmer can do. States and transit
 Key rules:
 
 - **Full access** = view reports + add/edit entries. **Read-only (grace)** = view and share reports only; no new or edited entries. **No access (expired/suspended/pending_approval)** = login shows a prompt to pay, wait for approval, or contact the owner; data is retained, not deleted.
-- `pending_approval` exists only to support Option B (approve-before-login). Under the recommended Option A it is never used — registration goes straight to `trial`. Both this table and the `subscriptions.status` enum (file 05) include the value so either option is buildable without a schema change.
+- `pending_approval` is the entry state for **every** new account (approve-before-login is the chosen model): registration lands here with login blocked, and an admin approval moves it to `trial`. The value is in both this table and the `subscriptions.status` enum (file 05).
 - Time-based transitions (`trial → grace`, `active → grace`, `grace → expired`) are **not** run by a scheduled job or cron. They are evaluated lazily: the backend compares the stored dates against `now` on the farmer's next authenticated request and on admin dashboard reads, and updates the stored `status` at that point. This is a deliberate choice for the Render free-tier, which sleeps after ~15 minutes idle and therefore cannot run a reliable always-on scheduler. The `subscriptions` indexes on `{ status, trialEndsAt }` and `{ status, currentPeriodEnd }` exist to make this on-read date check fast (and to let the admin list filter/scan by status), not to feed a scheduler.
 - Every money-linked transition (`→ active`) is triggered by an admin recording a real offline payment; the app never charges a card in v1.
 
 ## Open questions
 
 - **Grace limit length**: how many days of read-only grace before `expired`? Suggested 30 days; owner to confirm.
-- **Approval model**: instant trial (Option A, recommended) vs approve-before-login (Option B, which uses the `pending_approval` state). Owner to confirm before build.
-- **Expired data retention**: how long is a fully expired farmer's data kept before optional cleanup? Must respect DPDP deletion-on-request either way.
+- **Approval model (DECIDED):** approve-before-login — every registration starts in `pending_approval` and an admin must approve to start the trial and enable login.
+- **Expired data retention**: a fully expired or deactivated farmer's data is **retained, not deleted** (deactivate-only policy). A formal DPDP erasure request is handled as a manual admin exception (see doc 07).

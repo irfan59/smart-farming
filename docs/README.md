@@ -9,11 +9,15 @@ A phone-first product that lets an **individual smallholder farmer in India** lo
 | Area | Decision |
 |---|---|
 | Market | India (INR, Kharif/Rabi/Zaid seasons, state-varying land units) |
-| Mobile | React Native + Expo (Android + iOS) |
+| Mobile | React Native (bare CLI, no Expo) — Android + iOS |
+| Auth | Phone + password, **no OTP**; admin-assisted password reset |
 | Target user | Individual smallholder farmer (1–5 acres) |
 | Language | English only in v1, built i18n-ready |
 | Connectivity | Online-first (offline sync designed-in but built later) |
 | Money model | Free trial → manual monthly subscription; admin activates payment from web; lapse → read-only grace |
+| Onboarding | Farmer registers → **admin approves before login** → 14-day trial → paid |
+| Price | **₹99/month or ₹799/year** (14-day trial), admin-adjustable |
+| Data policy | **Deactivate-only** — records are never hard-deleted; legal erasure is a manual exception |
 | Profit | Progressive **true-cost** — cash profit by default, optional CACP-based real profit |
 | v1 extras | Receipt photo on entries; share reports to WhatsApp / PDF |
 | Backend | Node.js + Express, MongoDB Atlas |
@@ -34,13 +38,13 @@ A phone-first product that lets an **individual smallholder farmer in India** lo
 
 ## Key open decisions (need the owner's input)
 
-These were surfaced during design and adversarial review. They are the main things to resolve at review time:
+These were surfaced during design/review and have now all been **resolved with the owner** (2026-07-04):
 
-1. **First-login model** — instant free trial (recommended, low friction) vs admin approval *before* first login (more control).
-2. **How farmers enter "true cost"** — the differentiator depends on capturing family-labour and own-land value. Manual entry risks being skipped; a guided/assisted approach may be needed.
-3. **English-only v1 + password login** — friction risk for the persona; consider OTP login and prioritising Hindi.
-4. **Data deletion vs financial retention** — DPDP right-to-delete vs keeping payment records.
-5. **Subscription price** — ~₹99/month or ~₹799/year is a starting hypothesis to validate with real farmers.
+1. ~~First-login model~~ **DECIDED:** admin approves the account **before first login**; the trial starts on approval.
+2. ~~How farmers enter "true cost"~~ **DECIDED:** v1 auto-suggests family-labour (days × wage) and own-land value from config; the farmer confirms in one tap.
+3. **English-only v1** — login is **phone + password, no OTP** (owner decision). English-only is a friction risk for the persona; consider prioritising Hindi in v2.
+4. ~~Data deletion vs financial retention~~ **DECIDED:** **deactivate-only** (no hard deletes); a formal DPDP legal-erasure request is a manual admin exception.
+5. ~~Subscription price~~ **DECIDED:** launch at **₹99/month or ₹799/year** (14-day trial), admin-adjustable. Still worth validating with farmers.
 
 ## Glossary
 

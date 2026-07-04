@@ -4,7 +4,7 @@
 
 ## Screens & UI Specification
 
-This section specifies every screen in the **farmer mobile app** (React Native + Expo) and, in lighter detail, the **web admin panel** (React + Vite). All UI text lives in an i18n resource file (English v1, no hardcoded strings). Layouts must not break when longer regional strings are added later. Every farmer screen follows the SARAL principles: icon-first, big number-pad, minimal typing, flat navigation, 2-3 taps to log an entry, clear confirmation and undo.
+This section specifies every screen in the **farmer mobile app** (React Native, bare CLI — no Expo) and, in lighter detail, the **web admin panel** (React + Vite). All UI text lives in an i18n resource file (English v1, no hardcoded strings). Layouts must not break when longer regional strings are added later. Every farmer screen follows the SARAL principles: icon-first, big number-pad, minimal typing, flat navigation, 2-3 taps to log an entry, clear confirmation and undo.
 
 ### Global conventions
 
@@ -28,17 +28,17 @@ This section specifies every screen in the **farmer mobile app** (React Native +
 - **Low-literacy note:** picture-driven cards; skippable; no wall of text.
 
 #### Register / Login
-- **Purpose:** account creation and sign-in. Farmer signs in with **phone number + one-time password (OTP)** sent by SMS — no password to create or remember.
-- **Key UI:** phone field (numeric pad), name, village, state + district pickers; **consent checkbox** (DPDP Act 2023: "I agree to my data being stored to run my account"). Login screen: phone field → **"Send code"** → 4/6-digit OTP entry with auto-advance boxes and a **"Resend code"** timer. No password field, no "Forgot password" flow.
-- **Primary actions:** Register → **instant free trial starts (14 days), login enabled immediately** (recommended model); Login → enter phone → enter OTP → Home.
-- **States:** *Loading* — button spinner; "Sending code..." then "Checking code...". *Error* — "This phone number is already registered" / "Wrong or expired code — resend", inline, in plain words.
-- **Low-literacy note:** phone number + a code the farmer just received is far less friction than inventing and recalling a password; minimum fields; state/district as searchable dropdowns, not free typing.
+- **Purpose:** account creation and sign-in. Farmer registers with a **phone number + a password they choose**, then signs in with phone + password. No OTP/SMS.
+- **Key UI:** phone field (numeric pad), name, village, state + district pickers, and a **password field** (with a show/hide toggle); **consent checkbox** (DPDP Act 2023: "I agree to my data being stored to run my account"). Login screen: phone field + password field → **"Login"**; a **"Forgot password?"** link routes to admin-assisted reset (the owner issues a temporary password).
+- **Primary actions:** Register → account created, app shows **"Waiting for approval"**; after the admin approves, the **14-day trial starts and login opens**; Login → enter phone + password → Home.
+- **States:** *Loading* — button spinner ("Signing in..."). *Error* — "This phone number is already registered" / "Wrong phone number or password", inline, in plain words.
+- **Low-literacy note:** keep the password gentle (min 8 chars, show/hide toggle, no forced symbols); minimum fields; state/district as searchable dropdowns, not free typing.
 
-> **Why OTP, not a password:** phone is already the unique farmer identity in the data model, so switching the login factor from password to OTP does not change the model — it only removes the password-creation and password-recall friction that would hurt trust in the critical first minute for a low-literacy, WhatsApp-comfortable user. Password login (or password-as-fallback) can be added later without a rewrite.
+> **Why phone + password (no OTP):** the phone number is the unique farmer identity in the data model. v1 deliberately avoids OTP/SMS to remove the SMS-provider dependency and cost (owner decision). Password recovery is handled by admin-assisted reset, so a farmer is never locked out. Keep the password UX gentle — show/hide toggle, length over complexity.
 
 > **Open question — v1 language:** the spine locks **English-only for v1** (built i18n-ready). Because the design is icon-first, the actual on-screen string count is small (category labels, the DPDP consent line, status pills, error text). Owners should decide whether to also ship the pilot state's regional language (e.g. Hindi + one more) in v1, since that is a small translation task rather than a rebuild. This is a decision to make, not resolved here.
 
-> **Open question — first-login gate:** whether first login requires **admin approval before activation** (original idea) or the **instant-trial** flow shown above (recommended). The screen supports both — approval mode simply shows a "Waiting for approval" state after Register instead of opening Home.
+> **Decided — first-login gate:** first login **requires admin approval** (approve-before-login). After Register, the app shows a **"Waiting for approval"** state; when the admin approves from the web, login opens and the 14-day trial begins.
 
 #### Home / Dashboard
 - **Purpose:** the daily landing screen — this month's money at a glance.
@@ -84,15 +84,15 @@ This section specifies every screen in the **farmer mobile app** (React Native +
 
 #### Subscription / Account
 - **Purpose:** show plan status and how to pay.
-- **Key UI:** status pill — **Trial (days left) / Active (renews on…) / Grace (renew now) / Expired**; plan and price (**~Rs 99/month or ~Rs 799/year — to validate**); clear line: **"To pay, use cash/UPI with us; admin will activate your month"** (no in-app payment in v1); payment history list.
+- **Key UI:** status pill — **Trial (days left) / Active (renews on…) / Grace (renew now) / Expired**; plan and price (**Rs 99/month or Rs 799/year**); clear line: **"To pay, use cash/UPI with us; admin will activate your month"** (no in-app payment in v1); payment history list.
 - **Primary actions:** view status; contact/how-to-pay info.
 - **States:** *Grace/Expired* — prominent renew message; *Trial* — countdown.
 - **Low-literacy note:** one colour-coded pill tells the whole status; no confusing gateway.
 
 #### Notifications & Settings
 - **Purpose:** receive admin announcements (FCM push) and manage the account.
-- **Key UI (Notifications):** list of announcements (title + body + date), unread dots. **Settings:** language (English v1, ready for more), profile edit, logout, **delete my account/data** (DPDP), about.
-- **Primary actions:** read announcement; edit profile; logout; request data deletion.
+- **Key UI (Notifications):** list of announcements (title + body + date), unread dots. **Settings:** language (English v1, ready for more), profile edit, logout, **deactivate my account** (data kept; DPDP legal erasure on request via the owner), about.
+- **Primary actions:** read announcement; edit profile; logout; deactivate account.
 - **States:** *Empty* — "No messages yet". *Loading* — skeleton list.
 - **Low-literacy note:** icon + short title per item; settings kept short and flat.
 
