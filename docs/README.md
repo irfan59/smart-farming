@@ -36,6 +36,16 @@ A phone-first product that lets an **individual smallholder farmer in India** lo
 | 07 | [Architecture, API & Security](07-architecture-api-and-security.md) | System design, API endpoints, auth, security, DPDP privacy |
 | 08 | [Subscription, Monetization & Roadmap](08-subscription-monetization-and-roadmap.md) | Lifecycle, pricing, v1→v3 roadmap, risks, open questions |
 
+## Implementation plans
+
+Detailed, test-first (TDD) build plans live in [`plans/`](plans/). Build in this order — the clients depend on the API:
+
+| Order | Plan | Builds |
+|---|---|---|
+| 1 | [Backend API](plans/2026-07-05-backend-api-implementation.md) | Node/Express/MongoDB — auth, ownership guard, cost engine, subscription state machine, reports, admin endpoints |
+| 2 | [Web Admin](plans/2026-07-05-web-admin-implementation.md) | React + Vite — approvals, payments, farmer views, master data, announcements, dashboard |
+| 3 | [Farmer App](plans/2026-07-05-farmer-app-implementation.md) | Bare React Native — onboarding, 2–3 tap logging + receipts, reports with cash/true toggle, WhatsApp/PDF share |
+
 ## Key open decisions (need the owner's input)
 
 These were surfaced during design/review and have now all been **resolved with the owner** (2026-07-04):
