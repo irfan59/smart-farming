@@ -38,13 +38,13 @@ A phone-first product that lets an **individual smallholder farmer in India** lo
 
 ## Implementation plans
 
-Detailed, test-first (TDD) build plans live in [`plans/`](plans/). Build in this order — the clients depend on the API:
+Detailed, test-first (TDD) build plans live in [`plans/`](plans/), built against the **pinned** [`API-CONTRACT.md`](plans/API-CONTRACT.md) (the source of truth for the API surface — when any plan disagrees with it, the contract wins). See the [plans roadmap](plans/README.md). Build in dependency order:
 
-| Order | Plan | Builds |
+| Order | Plan | Status |
 |---|---|---|
-| 1 | [Backend API](plans/2026-07-05-backend-api-implementation.md) | Node/Express/MongoDB — auth, ownership guard, cost engine, subscription state machine, reports, admin endpoints |
-| 2 | [Web Admin](plans/2026-07-05-web-admin-implementation.md) | React + Vite — approvals, payments, farmer views, master data, announcements, dashboard |
-| 3 | [Farmer App](plans/2026-07-05-farmer-app-implementation.md) | Bare React Native — onboarding, 2–3 tap logging + receipts, reports with cash/true toggle, WhatsApp/PDF share |
+| 1 | [Backend API](plans/01-backend-plan.md) | Ready — 12 modules (S, AUTH, F, SEC, MD, P, CC, TX, R, SUB, ADM, DEP), Node ESM at repo root |
+| 2 | Web Admin (`02-web-admin-plan.md`) | To be written against the API contract (root `web-admin/`) |
+| 3 | Farmer App (`03-farmer-app-plan.md`) | To be written against the API contract (root `farmer-app/`, bare RN) |
 
 ## Key open decisions (need the owner's input)
 
