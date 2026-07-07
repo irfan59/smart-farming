@@ -1,0 +1,16 @@
+{
+  "common": { "save": "Save", "cancel": "Cancel", "back": "Back", "loading": "Loading…", "retry": "Try again", "add": "Add", "logout": "Log out" },
+  "onboarding": { "tagline": "Track your kheti kharcha, see real profit", "getStarted": "Get started", "haveAccount": "I already have an account" },
+  "auth": {
+    "register": "Register", "login": "Log in", "name": "Name", "phone": "Phone number", "password": "Password",
+    "village": "Village", "state": "State", "district": "District",
+    "consent": "I agree to my data being stored to run my account",
+    "forgot": "Forgot password? Contact us to reset it.",
+    "waitingTitle": "Waiting for approval", "waitingBody": "Your account is being reviewed. Please check back soon.",
+    "checkAgain": "Check again", "wrongLogin": "Wrong phone number or password"
+  },
+  "home": { "thisMonth": "This month", "income": "Income", "expense": "Expense", "profit": "Profit", "addEntry": "Add entry", "trialLeft": "Free trial active", "renew": "Renew to add new entries" },
+  "add": { "expense": "Add expense", "income": "Add income", "pickCategory": "Pick a category", "amount": "Amount", "saved": "Saved", "undo": "Undo", "addPhoto": "Add bill photo", "howManyDays": "About how many days did you and your family work on this crop?", "confirm": "Confirm" },
+  "report": { "monthly": "Monthly", "yearly": "Yearly", "perCrop": "Per crop", "perAcre": "Per acre", "cash": "Cash profit", "true": "See my real profit", "share": "Share", "bestPerAcre": "Which crop earned most per acre" },
+  "account": { "title": "Account", "payOffline": "To pay, use cash/UPI with us; we will activate your month", "deactivate": "Deactivate my account", "deactivateWarn": "Your data is kept. Contact us to fully erase it." }
+}

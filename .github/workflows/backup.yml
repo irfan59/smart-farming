@@ -1,0 +1,35 @@
+name: DB Backup
+on:
+  schedule:
+    - cron: '0 1 * * *' # daily at 01:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  mongodump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install MongoDB Database Tools
+        run: |
+          wget -q https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-x86_64-100.10.0.deb
+          sudo dpkg -i mongodb-database-tools-ubuntu2204-x86_64-100.10.0.deb
+
+      - name: Dump database
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+        run: |
+          STAMP=$(date -u +%Y%m%d-%H%M%S)
+          mongodump --uri="$MONGODB_URI" --gzip --archive="backup-$STAMP.gz"
+          echo "ARCHIVE=backup-$STAMP.gz" >> "$GITHUB_ENV"
+
+      - name: Upload to S3-compatible storage
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.BACKUP_S3_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_S3_SECRET }}
+          AWS_DEFAULT_REGION: ${{ secrets.BACKUP_S3_REGION }}
+          S3_BUCKET: ${{ secrets.BACKUP_S3_BUCKET }}
+          S3_ENDPOINT: ${{ secrets.BACKUP_S3_ENDPOINT }}
+        run: |
+          aws s3 cp "$ARCHIVE" "s3://$S3_BUCKET/smart-farming/$ARCHIVE" --endpoint-url "$S3_ENDPOINT"
+
+      # Retention: lifecycle-expire objects after 30 days on the bucket, OR prune here.
+      # Monthly: run a manual RESTORE TEST — a backup never restored is not a backup.
