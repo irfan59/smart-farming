@@ -1,34 +1,69 @@
 import { useState } from 'react';
-import { View, Text } from 'react-native';
+import { Text, StyleSheet } from 'react-native';
 import Screen from '../components/Screen';
-import PrimaryButton from '../components/PrimaryButton';
+import Card from '../components/ui/Card';
+import Button from '../components/ui/Button';
+import FadeIn from '../components/ui/FadeIn';
 import { useCropCycleReport } from '../features/reports/useReports';
 import { rupees } from '../lib/money';
+import { colors, font, spacing } from '../theme';
 
-export default function CropCycleDetailScreen({ route }) {
+export default function CropCycleDetailScreen({ route, navigation }) {
   const id = route?.params?.id;
   const { data, isLoading } = useCropCycleReport(id);
   const [showTrue, setShowTrue] = useState(false);
 
-  if (isLoading || !data) return <Screen><Text>Loading…</Text></Screen>;
+  if (isLoading || !data)
+    return (
+      <Screen>
+        <Text style={{ color: colors.textMuted }}>Loading…</Text>
+      </Screen>
+    );
+
+  const positive = data.cashProfit >= 0;
 
   return (
     <Screen>
-      <Text style={{ fontSize: 20, fontWeight: '600' }}>{data.cycle.cropName} · {data.cycle.season} {data.cycle.year}</Text>
+      <FadeIn>
+        <Text style={styles.crop}>{data.cycle.cropName} · {data.cycle.season} {data.cycle.year}</Text>
 
-      <Text style={{ fontSize: 16, marginTop: 12 }}>Cash profit</Text>
-      <Text style={{ fontSize: 28, color: data.cashProfit >= 0 ? '#1d9e75' : '#A32D2D' }}>{rupees(data.cashProfit)}</Text>
-      <Text>Per acre: {rupees(data.perAcreCash)}</Text>
+        <Card style={{ marginTop: spacing.md }}>
+          <Text style={styles.label}>Cash profit</Text>
+          <Text style={[styles.big, { color: positive ? colors.brand[600] : colors.danger }]}>{rupees(data.cashProfit)}</Text>
+          <Text style={styles.muted}>Per acre: {rupees(data.perAcreCash)}</Text>
+        </Card>
 
-      <PrimaryButton title={showTrue ? 'Hide real profit' : 'See my real profit'} onPress={() => setShowTrue((v) => !v)} />
+        <Button
+          title={showTrue ? 'Hide real profit' : 'See my real profit'}
+          variant="secondary"
+          icon={showTrue ? undefined : 'Sparkles'}
+          onPress={() => setShowTrue((v) => !v)}
+          style={{ marginTop: spacing.lg }}
+        />
 
-      {showTrue ? (
-        <View style={{ marginTop: 8 }}>
-          <Text style={{ fontSize: 16 }}>True profit (after family labour & own-land value)</Text>
-          <Text style={{ fontSize: 24 }}>{rupees(data.trueProfit)}</Text>
-          <Text>Per acre: {rupees(data.perAcreTrue)}</Text>
-        </View>
-      ) : null}
+        {showTrue ? (
+          <Card style={{ marginTop: spacing.md, backgroundColor: colors.brand[50], borderColor: colors.brand[200] }}>
+            <Text style={styles.label}>True profit (after family labour & own-land value)</Text>
+            <Text style={[styles.big, { color: colors.brand[700] }]}>{rupees(data.trueProfit)}</Text>
+            <Text style={styles.muted}>Per acre: {rupees(data.perAcreTrue)}</Text>
+          </Card>
+        ) : null}
+
+        <Button
+          title="Share report"
+          variant="ghost"
+          icon="Share2"
+          onPress={() => navigation?.navigate('ShareReport', { report: { cropName: data.cycle.cropName, cashProfit: data.cashProfit, trueProfit: data.trueProfit } })}
+          style={{ marginTop: spacing.md }}
+        />
+      </FadeIn>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  crop: { fontSize: font.size.lg, fontWeight: font.weight.semibold, color: colors.text },
+  label: { fontSize: font.size.sm, color: colors.textMuted },
+  big: { fontSize: font.size.display, fontWeight: font.weight.bold, marginVertical: 4 },
+  muted: { color: colors.textMuted, fontSize: font.size.sm },
+});

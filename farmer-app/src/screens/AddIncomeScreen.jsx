@@ -1,12 +1,15 @@
 import { useState } from 'react';
-import { Text } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import Screen from '../components/Screen';
 import CategoryGrid from '../components/CategoryGrid';
 import NumberPad from '../components/NumberPad';
-import PrimaryButton from '../components/PrimaryButton';
+import Card from '../components/ui/Card';
+import Button from '../components/ui/Button';
+import FadeIn from '../components/ui/FadeIn';
 import { useCatalog } from '../features/catalog/useCatalog';
 import { useCreateTransaction } from '../features/transactions/useCreateTransaction';
 import { rupees } from '../lib/money';
+import { colors, font, spacing, radius } from '../theme';
 
 export default function AddIncomeScreen({ navigation, route }) {
   const cropCycleId = route?.params?.cropCycleId || null;
@@ -26,22 +29,52 @@ export default function AddIncomeScreen({ navigation, route }) {
     }
   }
 
-  if (isLoading) return <Screen><Text>Loading…</Text></Screen>;
+  if (isLoading)
+    return (
+      <Screen>
+        <Text style={{ color: colors.textMuted }}>Loading…</Text>
+      </Screen>
+    );
+
   if (!category) {
     return (
       <Screen>
-        <Text style={{ fontSize: 18, marginBottom: 8 }}>Pick a category</Text>
-        <CategoryGrid categories={categories} onSelect={setCategory} />
+        <FadeIn>
+          <Text style={styles.step}>Step 1 of 2</Text>
+          <Text style={styles.h1}>Pick a category</Text>
+          <View style={{ marginTop: spacing.lg }}>
+            <CategoryGrid categories={categories} onSelect={setCategory} />
+          </View>
+        </FadeIn>
       </Screen>
     );
   }
+
   return (
     <Screen>
-      <Text style={{ fontSize: 18, marginBottom: 8 }}>{category.name}</Text>
-      <Text style={{ fontSize: 30, textAlign: 'center', marginVertical: 8 }}>{rupees(Number(amount || 0))}</Text>
-      <NumberPad value={amount} onChange={setAmount} />
-      {error ? <Text style={{ color: '#A32D2D' }}>{error}</Text> : null}
-      <PrimaryButton title="Save" onPress={save} disabled={create.isPending} />
+      <FadeIn>
+        <Text style={styles.step}>Step 2 of 2 · {category.name}</Text>
+        <Text style={styles.h1}>Amount</Text>
+        <Card style={styles.display}>
+          <Text style={styles.amount}>{rupees(Number(amount || 0))}</Text>
+        </Card>
+        <NumberPad value={amount} onChange={setAmount} />
+        {error ? (
+          <View style={styles.err}>
+            <Text style={styles.errText}>{error}</Text>
+          </View>
+        ) : null}
+        <Button title="Save" size="lg" onPress={save} loading={create.isPending} style={{ marginTop: spacing.md }} />
+      </FadeIn>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  step: { fontSize: font.size.sm, color: colors.textMuted, fontWeight: font.weight.medium, marginBottom: 2 },
+  h1: { fontSize: font.size.xxl, fontWeight: font.weight.bold, color: colors.text },
+  display: { marginTop: spacing.lg, marginBottom: spacing.lg, alignItems: 'center', paddingVertical: spacing.xl },
+  amount: { fontSize: font.size.display, fontWeight: font.weight.bold, color: colors.text },
+  err: { marginTop: spacing.md, backgroundColor: colors.dangerBg, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  errText: { color: colors.dangerText, fontSize: font.size.sm },
+});

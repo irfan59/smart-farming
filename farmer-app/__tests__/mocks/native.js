@@ -24,3 +24,5 @@ jest.mock('react-native-safe-area-context', () => {
     useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
   };
 });
+// Icons render to null in tests (and never pull react-native-svg into jsdom).
+jest.mock('lucide-react-native', () => new Proxy({ __esModule: true }, { get: (t, p) => (p === '__esModule' ? true : () => null) }));

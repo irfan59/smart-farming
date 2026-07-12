@@ -1,46 +1,70 @@
 import { useState } from 'react';
-import { Text, TextInput, Switch, View } from 'react-native';
+import { View, Text, Switch, StyleSheet } from 'react-native';
 import Screen from '../components/Screen';
-import PrimaryButton from '../components/PrimaryButton';
+import Card from '../components/ui/Card';
+import Input from '../components/ui/Input';
+import Button from '../components/ui/Button';
+import FadeIn from '../components/ui/FadeIn';
 import { useAuth } from '../auth/useAuth';
-
-const inp = { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 8 };
+import { colors, font, spacing, radius } from '../theme';
 
 export default function RegisterScreen() {
   const { register } = useAuth();
   const [form, setForm] = useState({ name: '', phone: '', password: '', village: '', state: '', district: '' });
   const [consent, setConsent] = useState(false);
   const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
   const set = (k) => (v) => setForm((f) => ({ ...f, [k]: v }));
 
   async function submit() {
     setError('');
-    if (!consent) { setError('Please give consent to continue'); return; }
-    try { await register(form); } catch (e) { setError(e.message || 'Could not register'); }
+    if (!consent) {
+      setError('Please give consent to continue');
+      return;
+    }
+    setBusy(true);
+    try {
+      await register(form);
+    } catch (e) {
+      setError(e.message || 'Could not register');
+    } finally {
+      setBusy(false);
+    }
   }
-
-  const Row = ({ label, k, ...opts }) => (
-    <View style={{ marginBottom: 8 }}>
-      <Text>{label}</Text>
-      <TextInput value={form[k]} onChangeText={set(k)} style={inp} {...opts} />
-    </View>
-  );
 
   return (
     <Screen>
-      <Text style={{ fontSize: 20, fontWeight: '600', marginBottom: 12 }}>Register</Text>
-      <Row label="Name" k="name" />
-      <Row label="Phone number" k="phone" keyboardType="number-pad" />
-      <Row label="Password" k="password" secureTextEntry />
-      <Row label="State" k="state" />
-      <Row label="District" k="district" />
-      <Row label="Village" k="village" />
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 8 }}>
-        <Switch value={consent} onValueChange={setConsent} />
-        <Text style={{ marginLeft: 8, flex: 1 }}>I agree to my data being stored to run my account</Text>
-      </View>
-      {error ? <Text style={{ color: '#A32D2D' }}>{error}</Text> : null}
-      <PrimaryButton title="Register" onPress={submit} />
+      <FadeIn>
+        <Text style={styles.h1}>Create your account</Text>
+        <Text style={styles.sub}>An admin approves new farmers before first login.</Text>
+        <Card style={{ marginTop: spacing.lg }}>
+          <Input label="Name" value={form.name} onChangeText={set('name')} placeholder="Your full name" />
+          <Input label="Phone number" value={form.phone} onChangeText={set('phone')} keyboardType="number-pad" placeholder="10-digit number" />
+          <Input label="Password" value={form.password} onChangeText={set('password')} secureTextEntry placeholder="At least 8 characters" />
+          <Input label="State" value={form.state} onChangeText={set('state')} placeholder="e.g. Maharashtra" />
+          <Input label="District" value={form.district} onChangeText={set('district')} placeholder="e.g. Wardha" />
+          <Input label="Village" value={form.village} onChangeText={set('village')} placeholder="Your village" containerStyle={{ marginBottom: spacing.sm }} />
+          <View style={styles.consent}>
+            <Switch value={consent} onValueChange={setConsent} trackColor={{ true: colors.brand[500] }} />
+            <Text style={styles.consentText}>I agree to my data being stored to run my account</Text>
+          </View>
+          {error ? (
+            <View style={styles.err}>
+              <Text style={styles.errText}>{error}</Text>
+            </View>
+          ) : null}
+          <Button title="Register" size="lg" onPress={submit} loading={busy} style={{ marginTop: spacing.lg }} />
+        </Card>
+      </FadeIn>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  h1: { fontSize: font.size.xxl, fontWeight: font.weight.bold, color: colors.text },
+  sub: { marginTop: 4, fontSize: font.size.sm, color: colors.textMuted },
+  consent: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.xs },
+  consentText: { flex: 1, fontSize: font.size.sm, color: colors.textMuted },
+  err: { marginTop: spacing.md, backgroundColor: colors.dangerBg, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  errText: { color: colors.dangerText, fontSize: font.size.sm },
+});

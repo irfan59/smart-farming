@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { Text } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import Screen from '../components/Screen';
-import PrimaryButton from '../components/PrimaryButton';
+import Button from '../components/ui/Button';
+import FadeIn from '../components/ui/FadeIn';
 import { useAuth } from '../auth/useAuth';
+import { colors, font, spacing, radius } from '../theme';
 
 export default function WaitingApprovalScreen() {
   const { retry, logout } = useAuth();
@@ -22,12 +24,30 @@ export default function WaitingApprovalScreen() {
   }
 
   return (
-    <Screen>
-      <Text style={{ fontSize: 20, fontWeight: '600' }}>Waiting for approval</Text>
-      <Text style={{ marginVertical: 12 }}>Your account is being reviewed. Please check back soon.</Text>
-      {msg ? <Text style={{ color: '#993C1D' }}>{msg}</Text> : null}
-      <PrimaryButton title="Check again" onPress={check} disabled={busy} />
-      <PrimaryButton title="Log out" onPress={logout} />
+    <Screen contentStyle={{ justifyContent: 'center' }}>
+      <FadeIn>
+        <View style={{ alignItems: 'center' }}>
+          <Text style={{ fontSize: 56 }}>⏳</Text>
+          <Text style={styles.h1}>Waiting for approval</Text>
+          <Text style={styles.sub}>Your account is being reviewed. We'll let you in as soon as an admin approves it.</Text>
+        </View>
+        {msg ? (
+          <View style={styles.note}>
+            <Text style={styles.noteText}>{msg}</Text>
+          </View>
+        ) : null}
+        <View style={{ gap: spacing.md, marginTop: spacing.xl }}>
+          <Button title="Check again" size="lg" onPress={check} loading={busy} />
+          <Button title="Log out" variant="ghost" onPress={logout} />
+        </View>
+      </FadeIn>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  h1: { marginTop: spacing.lg, fontSize: font.size.xxl, fontWeight: font.weight.bold, color: colors.text, textAlign: 'center' },
+  sub: { marginTop: spacing.sm, fontSize: font.size.md, color: colors.textMuted, textAlign: 'center', lineHeight: 22, paddingHorizontal: spacing.md },
+  note: { marginTop: spacing.xl, backgroundColor: colors.harvest[50], borderRadius: radius.md, padding: spacing.md },
+  noteText: { color: colors.harvest[700], fontSize: font.size.sm, textAlign: 'center' },
+});
