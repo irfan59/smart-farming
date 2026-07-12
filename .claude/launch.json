@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "backend",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--env-file=.env", "src/scripts/dev.js"],
+      "port": 4000
+    },
+    {
+      "name": "web-admin",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "web-admin", "run", "dev", "--", "--port", "5173", "--strictPort"],
+      "port": 5173
+    }
+  ]
+}
